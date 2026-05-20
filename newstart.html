@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>FlashMarket – Fresh Start (Admin Works)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://www.paypal.com/sdk/js?client-id=test&currency=USD"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #0f172a; color: #e2e8f0; }
+    .card-hover:hover { transform: translateY(-5px); transition: 0.2s; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
+    .product-img { object-fit: cover; height: 180px; width: 100%; background: #1e293b; border-radius: 12px; }
+    .toast-msg { position: fixed; bottom: 20px; right: 20px; background: #1e293b; padding: 10px 20px; border-radius: 40px; z-index: 1000; opacity: 0; transition: 0.2s; pointer-events: none; }
+    .active-nav { background: linear-gradient(135deg, #f59e0b, #d97706) !important; color: white !important; }
+    .nav-btn, .btn-primary { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 4px 12px; border-radius: 40px; font-weight: 600; transition: 0.2s; display: inline-block; cursor: pointer; border: none; font-size: 0.8rem; }
+    .nav-btn:hover, .btn-primary:hover { transform: scale(1.02); }
+    .flash-tag { background: #dc2626; font-size: 0.7rem; padding: 2px 6px; border-radius: 20px; display: inline-block; }
+    .countdown { background: #1e293b; padding: 2px 6px; border-radius: 20px; font-family: monospace; font-size: 0.65rem; }
+    .countdown-urgent { background: #dc2626; animation: pulse 1s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+    .sidebar-category { padding: 8px 12px; border-radius: 40px; cursor: pointer; transition: 0.2s; background: #1e293b; margin-bottom: 8px; text-align: center; font-size: 0.85rem; }
+    .sidebar-category:hover, .sidebar-category.active { background: #f59e0b; color: #0f172a; font-weight: 600; }
+    .hero-section { background: linear-gradient(135deg, #0f172a, #1e1b4b); border-radius: 1.5rem; }
+    .admin-panel { display: none; }
+    .admin-panel.active { display: block; }
+    .admin-tab-btn { background: #334155; padding: 4px 12px; border-radius: 30px; cursor: pointer; margin-right: 6px; border: none; color: white; }
+    .admin-tab-btn.active { background: #f59e0b; color: #0f172a; }
+    .admin-table td, .admin-table th { padding: 8px; border-bottom: 1px solid #334155; }
+  </style>
+</head>
+<body>
+
+<div id="toastMsg" class="toast-msg"><i class="fas fa-check-circle mr-2 text-green-400"></i> <span id="toastText"></span></div>
+
+<header class="bg-gray-900/90 border-b border-gray-800 sticky top-0 z-30">
+  <div class="max-w-7xl mx-auto px-3 py-2 flex flex-wrap justify-between items-center gap-2">
+    <div class="flex items-center gap-2 cursor-pointer" onclick="setView('home')">
+      <i class="fas fa-bolt text-amber-400 text-xl"></i>
+      <span class="text-xl font-bold bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">FlashMarket</span>
+    </div>
+    <div class="flex gap-2 flex-wrap">
+      <button onclick="setView('home')" class="nav-btn">🏠 Home</button>
+      <button onclick="setView('products')" class="nav-btn">🛍️ Shop</button>
+      <button onclick="setView('cart')" class="nav-btn relative"><i class="fas fa-shopping-cart"></i> Cart <span id="cartCountBadge" class="absolute -top-2 -right-2 bg-red-500 text-xs rounded-full w-4 h-4 hidden">0</span></button>
+      <button onclick="setView('orders')" class="nav-btn"><i class="fas fa-history"></i> Orders</button>
+      <button onclick="setView('blog')" class="nav-btn"><i class="fas fa-newspaper"></i> Blog</button>
+      <button onclick="setView('faq')" class="nav-btn"><i class="fas fa-question-circle"></i> FAQ</button>
+      <button onclick="setView('about')" class="nav-btn"><i class="fas fa-info-circle"></i> About</button>
+      <button onclick="setView('admin')" class="nav-btn"><i class="fas fa-user-shield"></i> Admin</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-3 py-4">
+  <!-- HOME VIEW -->
+  <div id="homeView" class="view-section">
+    <div class="flex flex-col md:flex-row gap-4">
+      <div class="md:w-1/5"><div class="sticky top-20 bg-gray-800/50 rounded-lg p-2"><h3 class="font-bold text-sm mb-2 text-center">Categories</h3><div id="homeSidebarCategories" class="flex flex-col gap-1"></div></div></div>
+      <div class="md:w-4/5">
+        <div class="hero-section p-4 mb-4 text-center">
+          <h1 class="text-2xl md:text-3xl font-extrabold text-white">Lightning Deals. <span class="text-amber-400">Air Freight Worldwide.</span></h1>
+          <p class="text-gray-300 text-sm mt-1">Weight‑based shipping · Combined order packing · 3‑day defect returns</p>
+          <button onclick="setView('products')" class="btn-primary mt-2 text-sm px-4 py-1">Shop Now <i class="fas fa-arrow-right ml-1"></i></button>
+          <div class="mt-2 text-amber-300 text-xs"><i class="fas fa-shield-alt"></i> One of the most reliable e‑commerce sites</div>
+        </div>
+        <h2 class="text-lg font-bold mb-2">⚡ FLASH SALE – LIMITED TIME</h2>
+        <div id="homeFlashSales" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"></div>
+        <div class="bg-gradient-to-r from-red-600 to-amber-600 rounded-lg p-2 text-center mb-4"><div id="globalFlashTimer" class="text-sm font-mono text-white"></div><p class="text-white/80 text-xs">Next flash deal ends in</p></div>
+        <div class="bg-gray-800 rounded-lg p-3 text-center"><h3 class="text-md font-bold">Join the Inner Circle</h3><p class="text-gray-400 text-xs mb-1">Get early access to flash sales and exclusive coupons.</p><div class="flex gap-2 justify-center"><input type="email" id="newsletterEmail" placeholder="Your email" class="bg-gray-700 rounded-full px-2 py-1 text-xs w-40"><button onclick="subscribeNewsletter()" class="btn-primary text-xs">Subscribe</button></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUCTS VIEW -->
+  <div id="productsView" class="view-section hidden">
+    <div class="flex flex-col md:flex-row gap-4">
+      <div class="md:w-1/5"><div class="sticky top-20 bg-gray-800/50 rounded-lg p-2"><h3 class="font-bold text-sm mb-2 text-center">Categories</h3><div id="categorySidebar" class="flex flex-col gap-1"></div></div></div>
+      <div class="md:w-4/5"><div class="flex justify-between items-center mb-3"><input type="text" id="searchInput" placeholder="Search products..." class="bg-gray-800 rounded-full px-3 py-1 text-sm w-56"></div><div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div></div>
+    </div>
+  </div>
+
+  <!-- CART, CHECKOUT, ORDERS, BLOG, FAQ, ABOUT (functional) -->
+  <div id="cartView" class="view-section hidden"><div class="bg-gray-800 rounded-lg p-4"><h2 class="text-lg font-bold mb-2">Your Cart</h2><div id="cartItemsContainer" class="text-sm"></div><div id="cartEmptyMsg" class="text-center py-4 hidden">Cart empty. <button onclick="setView('products')" class="btn-primary mt-1 text-xs">Shop</button></div><div id="cartSummary" class="hidden mt-3"><div class="flex justify-between"><span>Subtotal</span><span id="cartSubtotal">$0</span></div><div id="discountRow" class="hidden text-amber-400"><span>Coupon (<span id="couponPercent"></span>%)</span><span id="cartDiscountAmt">-$0</span></div><div class="flex justify-between text-xs"><span>Shipping</span><span id="shippingEstimate">Calculated at checkout</span></div><div class="flex justify-between font-bold mt-1"><span>Total</span><span id="cartTotalPrice">$0</span></div><div class="flex gap-1 mt-2"><input type="text" id="couponCodeInput" placeholder="Coupon code" class="bg-gray-700 rounded-full px-2 py-1 text-xs"><button onclick="applyCouponCode()" class="bg-amber-600 px-2 py-1 rounded-full text-xs">Apply</button><span id="couponMsg" class="text-xs"></span></div><div class="flex gap-2 mt-3"><button onclick="clearCart()" class="text-red-400 border border-red-800 px-2 py-0.5 rounded-full text-xs">Clear</button><button onclick="proceedToCheckout()" class="btn-primary text-xs">Checkout</button></div></div></div></div>
+  <div id="checkoutView" class="view-section hidden"><div class="bg-gray-800 rounded-lg p-4"><h2 class="text-lg font-bold mb-2">Checkout</h2><div class="grid md:grid-cols-2 gap-4"><div><div id="checkoutCartItems" class="space-y-1 text-sm"></div><div class="mt-2 flex justify-between text-sm"><span>Shipping</span><span id="checkoutShipping">$0</span></div><div class="flex justify-between font-bold"><span>Total</span><span id="checkoutTotal">$0</span></div></div><div><form id="billingForm"><input type="text" id="fullName" placeholder="Full name *" class="w-full bg-gray-700 p-1 rounded text-xs mb-1"><input type="email" id="email" placeholder="Email *" class="w-full bg-gray-700 p-1 rounded text-xs mb-1"><input type="text" id="address" placeholder="Address *" class="w-full bg-gray-700 p-1 rounded text-xs mb-1"><select id="countrySelect" class="w-full bg-gray-700 p-1 rounded text-xs mb-1"><option value="">Select Country</option><option value="US">USA</option><option value="CA">Canada</option><option value="UK">UK</option></select><input type="number" id="weightInput" placeholder="Total weight (kg)" readonly class="w-full bg-gray-800 p-1 rounded text-xs"></form><div id="paypal-button-container" class="mt-2"></div><button onclick="setView('cart')" class="text-amber-400 underline text-xs mt-1">← Back</button></div></div></div></div>
+  <div id="ordersView" class="view-section hidden"><div class="bg-gray-800 rounded-lg p-4"><h2 class="text-lg font-bold mb-2">Order History</h2><div id="ordersList" class="space-y-2 text-sm"></div><div id="noOrdersMsg" class="text-center py-4 hidden">No orders yet.</div></div></div>
+  <div id="blogView" class="view-section hidden"><div class="bg-gray-800 rounded-lg p-4"><h2 class="text-lg font-bold mb-2">Blog</h2><div id="blogPostsList" class="space-y-2 text-sm"></div><div id="noBlogMsg" class="text-center py-4 hidden">No posts yet.</div></div></div>
+  <div id="faqView" class="view-section hidden"><div class="bg-gray-800 rounded-lg p-4"><h2 class="text-lg font-bold mb-2">FAQ</h2><div class="space-y-2 text-xs"><div><h3 class="font-bold">Shipping?</h3><p>Air freight: total kg × country rate + handling fee. One order = one box.</p></div><div><h3 class="font-bold">Return policy?</h3><p>3 days for manufacturer defects only. Buyer pays return shipping.</p></div><div><h3 class="font-bold">Combine orders?</h3><p>No. One order = one payment = one box.</p></div><div><h3 class="font-bold">Flash sale?</h3><p>Red badge + live countdown. Last minute turns red.</p></div></div></div></div>
+  <div id="aboutView" class="view-section hidden"><div class="bg-gray-800 rounded-lg p-4"><h2 class="text-lg font-bold mb-2">About</h2><p class="text-sm">Top‑quality products, air freight shipping, combined packaging, 3‑day defect returns. Secure PayPal payment. Trusted worldwide.</p><p class="mt-2 text-amber-400 text-sm">Admin: admin123</p></div></div>
+
+  <!-- ADMIN PANEL -->
+  <div id="adminView" class="view-section hidden">
+    <div class="bg-gray-800 rounded-lg p-4">
+      <div class="flex justify-between"><h2 class="text-lg font-bold">Admin Panel</h2><button onclick="logoutAdmin()" class="bg-red-900/50 px-2 py-0.5 rounded-full text-xs">Logout</button></div>
+      <div id="adminLoginPanel" class="mt-3"><div class="max-w-md mx-auto bg-gray-900 p-3 rounded-lg"><h3 class="text-md font-bold mb-1">Login</h3><input type="password" id="adminPass" class="w-full bg-gray-700 p-1 rounded text-sm mb-1"><button onclick="loginAdmin()" class="btn-primary w-full text-sm py-1">Login</button><p class="text-xs mt-1">Default: admin123</p></div></div>
+      <div id="adminContent" class="hidden mt-3">
+        <div class="flex flex-wrap gap-2 mb-4">
+          <button onclick="showAdminTab('products')" class="admin-tab-btn active" id="tabProductsBtn">Products</button>
+          <button onclick="showAdminTab('blog')" class="admin-tab-btn" id="tabBlogBtn">Blog</button>
+          <button onclick="showAdminTab('categories')" class="admin-tab-btn" id="tabCategoriesBtn">Categories</button>
+          <button onclick="showAdminTab('coupons')" class="admin-tab-btn" id="tabCouponsBtn">Coupons</button>
+          <button onclick="showAdminTab('shipping')" class="admin-tab-btn" id="tabShippingBtn">Shipping</button>
+          <button onclick="showAdminTab('accounting')" class="admin-tab-btn" id="tabAccountingBtn">Accounting</button>
+          <button onclick="showAdminTab('analytics')" class="admin-tab-btn" id="tabAnalyticsBtn">Analytics</button>
+        </div>
+        <div id="productsPanel" class="admin-panel active"><div class="flex justify-between mb-2"><button onclick="addProduct()" class="bg-emerald-700 px-2 py-0.5 rounded-full text-xs">+ Add Product</button></div><div class="overflow-x-auto"><table class="admin-table"><thead><tr><th>ID</th><th>Image</th><th>Name</th><th>Price</th><th>Flash</th><th>Stock</th><th>Actions</th></tr></thead><tbody id="adminProductTable"></tbody>}</div></div>
+        <div id="blogPanel" class="admin-panel"><button onclick="addBlogPost()" class="bg-emerald-700 px-2 py-0.5 rounded-full text-xs mb-2">+ New Post</button><div id="blogAdminList" class="space-y-2"></div></div>
+        <div id="categoriesPanel" class="admin-panel"><div class="flex gap-1"><input type="text" id="newCatName" placeholder="New category" class="bg-gray-700 rounded px-2 py-0.5 text-xs"><button onclick="addCategory()" class="bg-blue-600 px-2 py-0.5 rounded text-xs">Add</button></div><div id="categoriesList" class="flex gap-1 mt-2 flex-wrap"></div></div>
+        <div id="couponsPanel" class="admin-panel"><div class="flex gap-1 flex-wrap"><input type="text" id="newCouponCode" placeholder="Code" class="bg-gray-700 p-1 rounded text-xs"><input type="number" id="newCouponDiscount" placeholder="%" class="bg-gray-700 p-1 rounded w-16 text-xs"><input type="date" id="newCouponExpiry" class="bg-gray-700 p-1 rounded text-xs"><button onclick="createCoupon()" class="bg-blue-600 px-2 py-0.5 rounded text-xs">Add</button></div><div id="adminCouponsList" class="mt-2 space-y-1"></div></div>
+        <div id="shippingPanel" class="admin-panel"><div id="shippingRatesContainer" class="space-y-1"></div><div class="mt-2"><button onclick="addShippingRate()" class="bg-blue-600 px-2 py-0.5 rounded text-xs">+ Add Country</button></div><div class="mt-2"><label class="text-xs">Handling fee: $</label><input type="number" id="handlingFeeInput" step="0.01" class="bg-gray-700 p-1 rounded w-20 text-xs"><button onclick="saveHandlingFee()" class="bg-green-600 px-2 py-0.5 rounded text-xs ml-1">Save</button></div></div>
+        <div id="accountingPanel" class="admin-panel"><div class="grid grid-cols-3 gap-2 mb-3"><div class="bg-gray-900 p-1 rounded text-center"><p class="text-xs">Revenue</p><p id="totalRevenue" class="text-md text-green-400">$0</p></div><div class="bg-gray-900 p-1 rounded text-center"><p class="text-xs">Cost</p><p id="totalCost" class="text-md text-red-400">$0</p></div><div class="bg-gray-900 p-1 rounded text-center"><p class="text-xs">Profit</p><p id="grossProfit" class="text-md text-amber-400">$0</p></div></div><div class="flex gap-1 mb-2 flex-wrap text-xs"><button onclick="updateAccounting('daily')" class="btn-primary text-xs">Daily</button><button onclick="updateAccounting('weekly')" class="btn-primary text-xs">Weekly</button><button onclick="updateAccounting('monthly')" class="btn-primary text-xs">Monthly</button><button onclick="updateAccounting('yearly')" class="btn-primary text-xs">Yearly</button><input type="date" id="profitSearchDate" class="bg-gray-700 p-1 rounded text-xs"><button onclick="searchAccounting()" class="bg-blue-600 px-2 py-0.5 rounded text-xs">Search</button></div><canvas id="profitChart" width="400" height="150"></canvas><div id="profitDetails" class="text-xs mt-1"></div></div>
+        <div id="analyticsPanel" class="admin-panel"><div class="grid md:grid-cols-2 gap-3"><div><div class="bg-gray-900 p-1 rounded text-xs"><h3 class="font-bold">Page Hits</h3><div id="hitStats"></div></div><div class="bg-gray-900 p-1 rounded mt-2 text-xs"><h3 class="font-bold">Top Products</h3><div id="topProducts"></div></div></div><div><div class="bg-gray-900 p-1 rounded text-xs"><h3 class="font-bold">Flash Performance</h3><div id="flashPerformance"></div></div><div class="bg-gray-900 p-1 rounded mt-2 text-xs"><h3 class="font-bold">Product Lifetime (days)</h3><div id="productLifetime"></div></div></div></div></div>
+      </div>
+    </div>
+  </div>
+</main>
+<footer class="border-t border-gray-800 mt-6 py-2 text-center text-gray-500 text-xs">© 2025 FlashMarket — Air freight · Combined box · 3‑day defect returns</footer>
+
+<script>
+  // ---------- DATA ----------
+  let products = [], cart = [], orders = [], coupons = [], categories = [], blogPosts = [];
+  let shippingRates = { US: 12.5, CA: 15, UK: 18 };
+  let handlingFee = 5;
+  let appliedCoupon = null, currentView = "home", activeCategory = "all", searchQuery = "", adminLogged = false;
+  let analytics = { pageHits: {}, productViews: {}, flashExposures: {}, flashSales: {} };
+  let profitChart = null;
+  const fallbackImg = "https://picsum.photos/id/1/300/200";
+
+  function showToast(msg) { let t = document.getElementById("toastMsg"); document.getElementById("toastText").innerText = msg; t.style.opacity = "1"; setTimeout(() => t.style.opacity = "0", 2000); }
+  function saveAll() { localStorage.setItem("fm_products", JSON.stringify(products)); localStorage.setItem("fm_cart", JSON.stringify(cart)); localStorage.setItem("fm_orders", JSON.stringify(orders)); localStorage.setItem("fm_coupons", JSON.stringify(coupons)); localStorage.setItem("fm_categories", JSON.stringify(categories)); localStorage.setItem("fm_blog", JSON.stringify(blogPosts)); localStorage.setItem("fm_shipping_rates", JSON.stringify(shippingRates)); localStorage.setItem("fm_handling_fee", handlingFee); localStorage.setItem("fm_analytics", JSON.stringify(analytics)); updateCartBadge(); }
+  function loadData() {
+    const stored = localStorage.getItem("fm_products");
+    if (stored) products = JSON.parse(stored);
+    else {
+      const now = new Date();
+      const end1 = new Date(now.getTime() + 5*60000);
+      const end2 = new Date(now.getTime() + 12*60000);
+      const end3 = new Date(now.getTime() + 20*60000);
+      const end4 = new Date(now.getTime() + 30*60000);
+      products = [
+        { id: 1, name: "iPhone 14 Pro", price: 999.99, cost: 750, category: "Electronics", images: ["https://picsum.photos/id/0/300/200"], weight: 0.5, stock: 5, flashSalePrice: 799.99, flashStart: now.toISOString().slice(0,16), flashEnd: end1.toISOString().slice(0,16), createdAt: now.toISOString() },
+        { id: 2, name: "MacBook Air M2", price: 1199.99, cost: 950, category: "Electronics", images: ["https://picsum.photos/id/1/300/200"], weight: 1.3, stock: 2, flashSalePrice: 999.99, flashStart: now.toISOString().slice(0,16), flashEnd: end2.toISOString().slice(0,16), createdAt: now.toISOString() },
+        { id: 3, name: "Sony WH-1000XM5", price: 349.99, cost: 200, category: "Electronics", images: ["https://picsum.photos/id/6/300/200"], weight: 0.3, stock: 8, flashSalePrice: 279.99, flashStart: now.toISOString().slice(0,16), flashEnd: end3.toISOString().slice(0,16), createdAt: now.toISOString() },
+        { id: 4, name: "Nike Air Max", price: 129.99, cost: 60, category: "Clothing", images: ["https://picsum.photos/id/7/300/200"], weight: 0.8, stock: 12, flashSalePrice: 89.99, flashStart: now.toISOString().slice(0,16), flashEnd: end4.toISOString().slice(0,16), createdAt: now.toISOString() },
+        { id: 5, name: "Essential Tee", price: 19.99, cost: 5, category: "Clothing", images: ["https://picsum.photos/id/2/300/200"], weight: 0.2, stock: 50, flashSalePrice: null, flashStart: null, flashEnd: null, createdAt: now.toISOString() },
+        { id: 6, name: "Desk Lamp", price: 39.99, cost: 15, category: "Home", images: ["https://picsum.photos/id/8/300/200"], weight: 0.5, stock: 25, flashSalePrice: null, flashStart: null, flashEnd: null, createdAt: now.toISOString() }
+      ];
+    }
+    categories = localStorage.getItem("fm_categories") ? JSON.parse(localStorage.getItem("fm_categories")) : ["Electronics", "Clothing", "Home", "Books"];
+    cart = localStorage.getItem("fm_cart") ? JSON.parse(localStorage.getItem("fm_cart")) : [];
+    orders = localStorage.getItem("fm_orders") ? JSON.parse(localStorage.getItem("fm_orders")) : [];
+    coupons = localStorage.getItem("fm_coupons") ? JSON.parse(localStorage.getItem("fm_coupons")) : [{ code: "FLASH20", discountPercent: 20, expiry: new Date(Date.now() + 30*86400000).toISOString().slice(0,10) }];
+    blogPosts = localStorage.getItem("fm_blog") ? JSON.parse(localStorage.getItem("fm_blog")) : [{ id: 1, title: "Welcome to FlashMarket", content: "Flash sales are live!", author: "Admin", date: new Date().toISOString() }];
+    shippingRates = localStorage.getItem("fm_shipping_rates") ? JSON.parse(localStorage.getItem("fm_shipping_rates")) : { US: 12.5, CA: 15, UK: 18 };
+    handlingFee = localStorage.getItem("fm_handling_fee") ? parseFloat(localStorage.getItem("fm_handling_fee")) : 5;
+    analytics = localStorage.getItem("fm_analytics") ? JSON.parse(localStorage.getItem("fm_analytics")) : { pageHits: {}, productViews: {}, flashExposures: {}, flashSales: {} };
+    updateCartBadge();
+    setInterval(() => { updateAllCountdowns(); updateGlobalFlashTimer(); renderHomeFlashSales(); }, 1000);
+  }
+  function updateCartBadge() { let total = cart.reduce((s,i)=>s+i.quantity,0); let b = document.getElementById("cartCountBadge"); if(total>0){ b.innerText=total; b.classList.remove("hidden");} else b.classList.add("hidden"); }
+  function trackPageView(page) { analytics.pageHits[page] = (analytics.pageHits[page] || 0)+1; saveAll(); }
+  function trackProductView(pid) { analytics.productViews[pid] = (analytics.productViews[pid] || 0)+1; saveAll(); }
+  function isFlashActive(p) { if(!p.flashStart || !p.flashEnd || !p.flashSalePrice) return false; let now = new Date(), start = new Date(p.flashStart), end = new Date(p.flashEnd); return now >= start && now <= end; }
+  function getTimeRemaining(p) { let end = new Date(p.flashEnd), diff = end - Date.now(); if(diff<=0) return null; let d = Math.floor(diff/86400000), h = Math.floor((diff%86400000)/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000); return { d, h, m, s, diff }; }
+  function getEffectivePrice(p) { return isFlashActive(p) ? p.flashSalePrice : p.price; }
+  function getTotalCartWeight() { return cart.reduce((s,i)=>{ let p=products.find(pr=>pr.id===i.productId); return s + (p?.weight||0)*i.quantity; },0); }
+  function calculateShipping(country) { let rate = shippingRates[country] || 25; let weight = getTotalCartWeight(); return (weight * rate) + handlingFee; }
+  
+  function getTopFlashSales() { let active = products.filter(p => isFlashActive(p)); active.sort((a,b) => new Date(a.flashEnd) - new Date(b.flashEnd)); return active.slice(0, 3); }
+  function renderHomeFlashSales() { let topFlash = getTopFlashSales(); let container = document.getElementById("homeFlashSales"); if (!container) return; if (topFlash.length === 0) { container.innerHTML = "<div class='col-span-full text-center py-2 text-gray-400 text-sm'>No active flash sales</div>"; return; } container.innerHTML = topFlash.map(p => renderProductCard(p)).join(""); document.querySelectorAll("#homeFlashSales .add-to-cart").forEach(btn => btn.addEventListener("click", () => addToCart(parseInt(btn.dataset.id)))); }
+  function renderSidebarCategories() {
+    let allCats = ["all", ...categories];
+    let sidebar = document.getElementById("categorySidebar");
+    if (sidebar) { sidebar.innerHTML = allCats.map(c => `<div class="sidebar-category ${activeCategory === c ? 'active' : ''}" data-cat="${c}">${c === 'all' ? 'All Categories' : c}</div>`).join(""); document.querySelectorAll("#categorySidebar .sidebar-category").forEach(el => el.addEventListener("click", () => { activeCategory = el.dataset.cat; renderProducts(); renderSidebarCategories(); })); }
+    let homeSidebar = document.getElementById("homeSidebarCategories");
+    if (homeSidebar) { homeSidebar.innerHTML = allCats.map(c => `<div class="sidebar-category ${activeCategory === c ? 'active' : ''}" data-cat="${c}">${c === 'all' ? 'All Categories' : c}</div>`).join(""); document.querySelectorAll("#homeSidebarCategories .sidebar-category").forEach(el => el.addEventListener("click", () => { activeCategory = el.dataset.cat; setView("products"); renderProducts(); renderSidebarCategories(); })); }
+  }
+
+  function updateAllCountdowns() { document.querySelectorAll(".countdown-display").forEach(el => { let pid = parseInt(el.dataset.pid); let p = products.find(pr=>pr.id===pid); if(p && isFlashActive(p)) { let rem = getTimeRemaining(p); if(rem) { let urgent = rem.diff <= 60000; el.className = `countdown ${urgent ? 'countdown-urgent' : ''} countdown-display`; el.innerHTML = `<i class="fas fa-hourglass-half"></i> ${rem.d}d ${rem.h}h ${rem.m}m ${rem.s}s`; } else { el.innerHTML = `<span class="text-gray-500">Expired</span>`; } } }); renderHomeFlashSales(); }
+  function updateGlobalFlashTimer() { let topFlash = getTopFlashSales(); if (topFlash.length > 0) { let soonest = Math.min(...topFlash.map(p=>new Date(p.flashEnd).getTime())); let diff = soonest - Date.now(); if(diff>0) { let h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000); document.getElementById("globalFlashTimer").innerHTML = `⏰ Next flash ends in: ${h}h ${m}m ${s}s`; } else document.getElementById("globalFlashTimer").innerHTML = "Ending soon!"; } else document.getElementById("globalFlashTimer").innerHTML = "No active flash sales"; }
+
+  function renderProductCard(p) { let eff = getEffectivePrice(p), flash = isFlashActive(p); let imgUrl = (p.images && p.images[0]) ? p.images[0] : fallbackImg; let timer = ""; if(flash) { let rem = getTimeRemaining(p); if(rem) timer = `<span class="countdown countdown-display" data-pid="${p.id}"><i class="fas fa-hourglass-half"></i> ${rem.d}d ${rem.h}h ${rem.m}m ${rem.s}s</span>`; } return `<div class="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 card-hover"><img src="${imgUrl}" class="product-img" onerror="this.src='${fallbackImg}'"><div class="p-2">${flash ? '<div class="flash-tag">⚡ FLASH SALE</div>' : ''}<div class="text-amber-400 text-xs">${p.category}</div><h3 class="font-bold text-sm">${p.name}</h3><div class="flex justify-between items-center mt-1"><div><span class="text-md font-bold">$${eff.toFixed(2)}</span>${flash && p.flashSalePrice < p.price ? ` <span class="line-through text-xs text-gray-400">$${p.price}</span>` : ''}</div>${timer}</div><button data-id="${p.id}" class="add-to-cart w-full mt-1 bg-amber-600 py-1 rounded-full text-xs font-semibold" ${p.stock<=0 ? 'disabled' : ''}>${p.stock<=0 ? 'Out of Stock' : 'Add to Cart'}</button></div></div>`; }
+
+  function renderHome() { renderSidebarCategories(); renderHomeFlashSales(); }
+  function renderProducts() { let filtered = products.filter(p=>activeCategory==="all" || p.category===activeCategory); if(searchQuery) filtered = filtered.filter(p=>p.name.toLowerCase().includes(searchQuery.toLowerCase())); document.getElementById("productGrid").innerHTML = filtered.map(p=>{ trackProductView(p.id); return renderProductCard(p); }).join(""); document.querySelectorAll(".add-to-cart").forEach(btn=>btn.addEventListener("click",()=>addToCart(parseInt(btn.dataset.id)))); renderSidebarCategories(); }
+  function addToCart(pid, qty=1) { let p=products.find(pr=>pr.id===pid); if(!p || p.stock<=0){ showToast("Out of stock"); return; } let ex=cart.find(i=>i.productId===pid); let newQty=ex?ex.quantity+qty:qty; if(newQty>p.stock){ showToast(`Only ${p.stock} left`); return; } if(ex) ex.quantity=newQty; else cart.push({productId:pid, quantity:qty}); saveAll(); showToast(`Added ${p.name}`); refreshCurrentView(); if(isFlashActive(p)) trackFlashSale(pid, qty); }
+  function trackFlashSale(pid, qty) { analytics.flashSales[pid] = (analytics.flashSales[pid] || 0) + qty; saveAll(); }
+  function updateCartQty(pid, newQty) { let p=products.find(pr=>pr.id===pid); if(newQty>p.stock){ showToast(`Max ${p.stock}`); return; } if(newQty<=0) cart=cart.filter(i=>i.productId!==pid); else { let it=cart.find(i=>i.productId===pid); if(it) it.quantity=newQty; } saveAll(); refreshCurrentView(); }
+  function clearCart() { cart=[]; appliedCoupon=null; saveAll(); refreshCurrentView(); showToast("Cart cleared"); }
+  function getCartSubtotal() { return cart.reduce((s,i)=>{ let p=products.find(pr=>pr.id===i.productId); return s + getEffectivePrice(p)*i.quantity; },0); }
+  function getCartTotal() { let sub=getCartSubtotal(); if(appliedCoupon && appliedCoupon.expiry>=new Date().toISOString().slice(0,10)) return sub*(1-appliedCoupon.discountPercent/100); return sub; }
+  function applyCouponCode() { let code = document.getElementById("couponCodeInput").value; let coup=coupons.find(c=>c.code.toUpperCase()===code.toUpperCase()); if(!coup){ document.getElementById("couponMsg").innerHTML="Invalid"; return; } if(coup.expiry && coup.expiry<new Date().toISOString().slice(0,10)){ document.getElementById("couponMsg").innerHTML="Expired"; return; } appliedCoupon=coup; document.getElementById("couponMsg").innerHTML=`Applied ${coup.code} (${coup.discountPercent}%)`; refreshCurrentView(); }
+  function renderCartView() { let container=document.getElementById("cartItemsContainer"), emptyDiv=document.getElementById("cartEmptyMsg"), summary=document.getElementById("cartSummary"); if(cart.length===0){ container.innerHTML=""; summary.classList.add("hidden"); emptyDiv.classList.remove("hidden"); return; } emptyDiv.classList.add("hidden"); summary.classList.remove("hidden"); container.innerHTML = cart.map(item=>{ let p=products.find(pr=>pr.id===item.productId); let ep=getEffectivePrice(p); let img = p.images?.[0] || fallbackImg; return `<div class="flex justify-between items-center py-2 border-b border-gray-700 text-xs"><div class="flex gap-2"><img src="${img}" class="w-8 h-8 rounded object-cover"><div><p class="font-medium">${p.name}</p><p>$${ep.toFixed(2)}</p></div></div><div class="flex items-center gap-1"><button class="dec-qty border rounded-full w-5 h-5 text-xs" data-id="${p.id}">-</button><span>${item.quantity}</span><button class="inc-qty border rounded-full w-5 h-5 text-xs" data-id="${p.id}">+</button></div><div class="font-bold">$${(ep*item.quantity).toFixed(2)}</div><button class="remove-item text-red-400" data-id="${p.id}"><i class="fas fa-trash"></i></button></div>`; }).join("");
+    let sub=getCartSubtotal(), total=getCartTotal(); document.getElementById("cartSubtotal").innerText=`$${sub.toFixed(2)}`; if(appliedCoupon && appliedCoupon.expiry>=new Date().toISOString().slice(0,10)){ document.getElementById("discountRow").classList.remove("hidden"); document.getElementById("couponPercent").innerText=appliedCoupon.discountPercent; document.getElementById("cartDiscountAmt").innerText=`-$${(sub-total).toFixed(2)}`; } else document.getElementById("discountRow").classList.add("hidden"); document.getElementById("cartTotalPrice").innerText=`$${total.toFixed(2)}`; attachCartEvents(); }
+  function attachCartEvents() { document.querySelectorAll(".dec-qty").forEach(btn=>btn.addEventListener("click",()=>{ let id=parseInt(btn.dataset.id); let it=cart.find(i=>i.productId===id); if(it) updateCartQty(id, it.quantity-1); })); document.querySelectorAll(".inc-qty").forEach(btn=>btn.addEventListener("click",()=>{ let id=parseInt(btn.dataset.id); let it=cart.find(i=>i.productId===id); if(it) updateCartQty(id, it.quantity+1); })); document.querySelectorAll(".remove-item").forEach(btn=>btn.addEventListener("click",()=>updateCartQty(parseInt(btn.dataset.id),0))); }
+  function proceedToCheckout() { if(cart.length) setView("checkout"); else showToast("Cart empty"); }
+  function renderCheckoutView() { if(cart.length===0){ setView("cart"); return; } let html = cart.map(item=>{ let p=products.find(pr=>pr.id===item.productId); let ep=getEffectivePrice(p); return `<div class="flex justify-between text-xs"><span>${p.name} x${item.quantity}</span><span>$${(ep*item.quantity).toFixed(2)}</span></div>`; }).join(""); document.getElementById("checkoutCartItems").innerHTML=html; let total=getCartTotal(); let weight=getTotalCartWeight(); document.getElementById("weightInput").value=weight.toFixed(2); let country=document.getElementById("countrySelect").value; let shipping=country?calculateShipping(country):0; document.getElementById("checkoutShipping").innerText=`$${shipping.toFixed(2)}`; document.getElementById("checkoutTotal").innerHTML=`$${(total+shipping).toFixed(2)}`; document.getElementById("countrySelect").onchange=()=>{ let ship=calculateShipping(document.getElementById("countrySelect").value); document.getElementById("checkoutShipping").innerText=`$${ship.toFixed(2)}`; document.getElementById("checkoutTotal").innerHTML=`$${(total+ship).toFixed(2)}`; }; let paypalContainer=document.getElementById("paypal-button-container"); paypalContainer.innerHTML=""; if(window.paypal){ window.paypal.Buttons({ createOrder:(data,actions)=>actions.order.create({ purchase_units:[{ amount:{ value: (total+shipping).toFixed(2), currency_code:"USD" } }] }), onApprove:()=>processOrder(shipping), onError:()=>showToast("PayPal error") }).render("#paypal-button-container"); } }
+  function processOrder(shipping) { let fullName=document.getElementById("fullName").value.trim(), email=document.getElementById("email").value.trim(), address=document.getElementById("address").value.trim(), country=document.getElementById("countrySelect").value; if(!fullName||!email||!address||!country){ showToast("Fill all fields"); return; } for(let item of cart){ let prod=products.find(p=>p.id===item.productId); if(prod) prod.stock-=item.quantity; } let orderItems=cart.map(item=>{ let p=products.find(pr=>pr.id===item.productId); return { name:p.name, quantity:item.quantity, paidPrice:getEffectivePrice(p), cost:p.cost }; }); let newOrder={ id:Date.now(), date:new Date().toISOString(), customer:{ fullName, email, address, country }, items:orderItems, subtotal:getCartTotal(), shipping, total:getCartTotal()+shipping, status:"Paid" }; orders.unshift(newOrder); cart=[]; appliedCoupon=null; saveAll(); showToast("Order placed!"); setView("orders"); renderOrders(); }
+  function renderOrders() { let container=document.getElementById("ordersList"), noMsg=document.getElementById("noOrdersMsg"); if(!orders.length){ noMsg.classList.remove("hidden"); container.innerHTML=""; return; } noMsg.classList.add("hidden"); container.innerHTML=orders.map(o=>`<div class="bg-gray-900 p-2 rounded text-xs"><div class="flex justify-between"><span class="font-bold">#${o.id}</span><span>${new Date(o.date).toLocaleString()}</span><span class="text-emerald-400">${o.status}</span></div><div>${o.customer.fullName}, ${o.customer.country}</div><div>${o.items.map(i=>`<div>${i.name} x${i.quantity} = $${(i.paidPrice*i.quantity).toFixed(2)}</div>`).join("")}</div><div class="font-bold">Total: $${o.total.toFixed(2)}</div></div>`).join(""); }
+  function renderBlogFront() { let container=document.getElementById("blogPostsList"), noMsg=document.getElementById("noBlogMsg"); if(!blogPosts.length){ noMsg.classList.remove("hidden"); container.innerHTML=""; return; } noMsg.classList.add("hidden"); container.innerHTML=blogPosts.map(p=>`<div class="bg-gray-900 p-2 rounded text-xs"><div class="text-amber-400 text-xs">${new Date(p.date).toLocaleDateString()} by ${p.author}</div><h3 class="font-bold text-xs">${p.title}</h3><p class="text-xs">${p.content}</p></div>`).join(""); }
+  
+  // ========== ADMIN FUNCTIONS ==========
+  function loginAdmin() { if(document.getElementById("adminPass").value==="admin123"){ adminLogged=true; document.getElementById("adminLoginPanel").classList.add("hidden"); document.getElementById("adminContent").classList.remove("hidden"); showAdminTab("products"); } else showToast("Wrong password"); }
+  function logoutAdmin() { adminLogged=false; document.getElementById("adminLoginPanel").classList.remove("hidden"); document.getElementById("adminContent").classList.add("hidden"); setView("home"); }
+  function showAdminTab(tabName) {
+    document.querySelectorAll(".admin-panel").forEach(p => p.classList.remove("active"));
+    document.getElementById(tabName + "Panel").classList.add("active");
+    document.querySelectorAll(".admin-tab-btn").forEach(btn => btn.classList.remove("active"));
+    document.getElementById("tab" + tabName.charAt(0).toUpperCase() + tabName.slice(1) + "Btn").classList.add("active");
+    if (tabName === "products") renderAdminProducts();
+    else if (tabName === "blog") renderBlogAdmin();
+    else if (tabName === "categories") renderCategoriesAdmin();
+    else if (tabName === "coupons") renderCouponsAdmin();
+    else if (tabName === "shipping") renderShippingSettings();
+    else if (tabName === "accounting") updateAccounting();
+    else if (tabName === "analytics") renderAnalytics();
+  }
+  function renderAdminProducts() { if(!adminLogged) return; let tbody=document.getElementById("adminProductTable"); tbody.innerHTML=products.map(p=>`<tr class="border-b border-gray-700"><td>${p.id}<td><img src="${p.images?.[0]||fallbackImg}" class="w-8 h-8 rounded object-cover" onerror="this.src='${fallbackImg}'"><td>${p.name}</td><td class="text-amber-400">$${p.price}</td><td class="text-amber-400">${p.flashSalePrice ? `$${p.flashSalePrice}` : '-'}</td><td class="text-amber-400">${p.stock}</td><td class="whitespace-nowrap"><button onclick="editProduct(${p.id})" class="bg-blue-600 px-1 py-0.5 rounded text-xs">Edit</button> <button onclick="deleteProduct(${p.id})" class="bg-red-700 px-1 py-0.5 rounded text-xs">Del</button> <button onclick="uploadImageForProduct(${p.id})" class="bg-green-600 px-1 py-0.5 rounded text-xs">Upload</button></td></tr>`).join(""); }
+  function deleteProduct(id) { if(confirm("Delete product?")){ products=products.filter(p=>p.id!==id); saveAll(); renderAdminProducts(); renderProducts(); renderHome(); } }
+  function uploadImageForProduct(pid) { let p=products.find(pr=>pr.id===pid); let input=document.createElement("input"); input.type="file"; input.accept="image/jpeg,image/png"; input.onchange=(e)=>{ let file=e.target.files[0]; if(file){ let reader=new FileReader(); reader.onload=(ev)=>{ if(!p.images) p.images=[]; p.images.push(ev.target.result); saveAll(); renderAdminProducts(); renderProducts(); renderHome(); showToast("Image uploaded"); }; reader.readAsDataURL(file); } }; input.click(); }
+  function editProduct(pid) {
+    let p = products.find(pr=>pr.id===pid);
+    let newName = prompt("Name", p.name); if(newName) p.name = newName;
+    let newPrice = parseFloat(prompt("Regular price", p.price)); if(!isNaN(newPrice)) p.price = newPrice;
+    let newFlashPrice = prompt("Flash sale price (leave empty to disable)", p.flashSalePrice || ""); if(newFlashPrice !== null) p.flashSalePrice = newFlashPrice === "" ? null : parseFloat(newFlashPrice);
+    let startExample = "Format: YYYY-MM-DDTHH:MM";
+    let newFlashStart = prompt(`Flash start (UTC) - ${startExample}`, p.flashStart || ""); if(newFlashStart !== null) p.flashStart = newFlashStart === "" ? null : newFlashStart;
+    let newFlashEnd = prompt(`Flash end (UTC) - ${startExample}`, p.flashEnd || ""); if(newFlashEnd !== null) p.flashEnd = newFlashEnd === "" ? null : newFlashEnd;
+    let newStock = parseInt(prompt("Stock", p.stock)); if(!isNaN(newStock)) p.stock = Math.max(0, newStock);
+    let newCat = prompt(`Category (current: ${p.category})\nAvailable: ${categories.join(", ")}`, p.category);
+    if(newCat && categories.includes(newCat)) p.category = newCat;
+    else if(newCat) showToast("Category not in list. Add via Categories tab first.");
+    saveAll(); renderAdminProducts(); renderProducts(); renderHome(); showToast("Product updated");
+  }
+  function addProduct() {
+    let newId=Date.now(); let name=prompt("Product name")||"New"; let price=parseFloat(prompt("Regular price"))||10; let cost=parseFloat(prompt("Cost"))||price*0.7;
+    let cat = prompt(`Category (choose from: ${categories.join(", ")})`, categories[0]);
+    if(!categories.includes(cat)) { showToast("Category not found. Add via Categories tab first."); return; }
+    let stock=parseInt(prompt("Stock"))||0; let weight=parseFloat(prompt("Weight kg"))||0.5; let images=[];
+    let method=prompt("Add image: 'file' to upload or 'url'", "file");
+    if(method==='file'){
+      let input=document.createElement("input"); input.type="file"; input.accept="image/jpeg,image/png";
+      input.onchange=(e)=>{ let file=e.target.files[0]; if(file){ let reader=new FileReader(); reader.onload=(ev)=>{ images.push(ev.target.result); products.push({id:newId,name,price,cost,category:cat,images,stock,weight,flashSalePrice:null,flashStart:null,flashEnd:null,createdAt:new Date().toISOString()}); saveAll(); renderAdminProducts(); renderProducts(); renderHome(); showToast("Product added"); }; reader.readAsDataURL(file); } }; input.click();
+    } else { let url=prompt("Image URL"); if(url) images.push(url); products.push({id:newId,name,price,cost,category:cat,images,stock,weight,flashSalePrice:null,flashStart:null,flashEnd:null,createdAt:new Date().toISOString()}); saveAll(); renderAdminProducts(); renderProducts(); renderHome(); showToast("Product added"); }
+  }
+  function addBlogPost() { let title=prompt("Title"); if(title){ let content=prompt("Content"); if(content){ blogPosts.push({id:Date.now(), title, content, author:"Admin", date:new Date().toISOString()}); saveAll(); renderBlogAdmin(); renderBlogFront(); showToast("Post added"); } } }
+  function renderBlogAdmin() { let container=document.getElementById("blogAdminList"); container.innerHTML=blogPosts.map(p=>`<div class="flex justify-between bg-gray-900 p-1 rounded text-xs mt-1"><div><strong>${p.title}</strong> by ${p.author}</div><button onclick="deleteBlogPost(${p.id})" class="bg-red-700 px-1 py-0.5 rounded text-xs">Delete</button></div>`).join(""); }
+  function deleteBlogPost(id) { blogPosts=blogPosts.filter(b=>b.id!==id); saveAll(); renderBlogAdmin(); renderBlogFront(); showToast("Deleted"); }
+  function addCategory() { let newCat=document.getElementById("newCatName").value.trim(); if(newCat && !categories.includes(newCat)){ categories.push(newCat); saveAll(); renderCategoriesAdmin(); renderHome(); renderProducts(); document.getElementById("newCatName").value=""; showToast("Category added"); } else showToast("Invalid or duplicate"); }
+  function renderCategoriesAdmin() { let container=document.getElementById("categoriesList"); container.innerHTML=categories.map(cat=>`<div class="bg-gray-700 px-2 py-0.5 rounded-full flex items-center gap-1 text-xs">${cat}<button onclick="deleteCategory('${cat}')" class="text-red-400"><i class="fas fa-trash-alt"></i></button></div>`).join(""); }
+  function deleteCategory(cat) { categories=categories.filter(c=>c!==cat); saveAll(); renderCategoriesAdmin(); renderHome(); renderProducts(); }
+  function createCoupon() { let code=document.getElementById("newCouponCode").value.toUpperCase(); let disc=parseFloat(document.getElementById("newCouponDiscount").value); let expiry=document.getElementById("newCouponExpiry").value; if(code && disc>0 && disc<=100){ coupons.push({code, discountPercent:disc, expiry:expiry||null}); saveAll(); renderCouponsAdmin(); showToast("Coupon added"); document.getElementById("newCouponCode").value=""; document.getElementById("newCouponDiscount").value=""; } else showToast("Invalid"); }
+  function renderCouponsAdmin() { let container=document.getElementById("adminCouponsList"); container.innerHTML=coupons.map(c=>`<div class="flex justify-between bg-gray-900 p-1 rounded text-xs"><span>${c.code} (${c.discountPercent}%) expires: ${c.expiry||'never'}</span><button onclick="deleteCoupon('${c.code}')" class="text-red-400">Delete</button></div>`).join(""); }
+  function deleteCoupon(code) { coupons=coupons.filter(c=>c.code!==code); saveAll(); renderCouponsAdmin(); }
+  function addShippingRate() { let c=prompt("Country code (2 letters)"); if(c){ let r=parseFloat(prompt("Rate per kg")); if(!isNaN(r)){ shippingRates[c.toUpperCase()]=r; saveAll(); renderShippingSettings(); } } }
+  function renderShippingSettings() { let container=document.getElementById("shippingRatesContainer"); container.innerHTML=Object.entries(shippingRates).map(([c,r])=>`<div class="flex justify-between items-center text-xs py-1 border-b border-gray-700"><span>${c}: $${r}/kg</span><button onclick="deleteShippingRate('${c}')" class="bg-red-700 px-1 py-0.5 rounded text-xs">Delete</button></div>`).join(""); }
+  function deleteShippingRate(country) { delete shippingRates[country]; saveAll(); renderShippingSettings(); }
+  function saveHandlingFee() { let fee=parseFloat(document.getElementById("handlingFeeInput").value); if(!isNaN(fee)){ handlingFee=fee; saveAll(); showToast("Handling fee saved"); } }
+  function updateAccounting(period="daily", searchDate=null) { let filtered=orders; if(searchDate){ let sd=new Date(searchDate); filtered=orders.filter(o=>new Date(o.date).toDateString()===sd.toDateString()); } else if(period==="daily"){ let today=new Date().toDateString(); filtered=orders.filter(o=>new Date(o.date).toDateString()===today); } else if(period==="weekly"){ let weekAgo=new Date(); weekAgo.setDate(weekAgo.getDate()-7); filtered=orders.filter(o=>new Date(o.date)>=weekAgo); } else if(period==="monthly"){ let monthAgo=new Date(); monthAgo.setMonth(monthAgo.getMonth()-1); filtered=orders.filter(o=>new Date(o.date)>=monthAgo); } else if(period==="yearly"){ let yearAgo=new Date(); yearAgo.setFullYear(yearAgo.getFullYear()-1); filtered=orders.filter(o=>new Date(o.date)>=yearAgo); } let revenue=filtered.reduce((s,o)=>s+o.total,0); let cost=filtered.reduce((s,o)=>s+o.items.reduce((a,i)=>a+(i.cost||i.paidPrice*0.7)*i.quantity,0),0); let profit=revenue-cost; document.getElementById("totalRevenue").innerText=`$${revenue.toFixed(2)}`; document.getElementById("totalCost").innerText=`$${cost.toFixed(2)}`; document.getElementById("grossProfit").innerText=`$${profit.toFixed(2)}`; let last30=[]; for(let i=29;i>=0;i--){ let d=new Date(); d.setDate(d.getDate()-i); last30.push(d.toISOString().slice(0,10)); } let revByDay=last30.map(day=>filtered.filter(o=>o.date.slice(0,10)===day).reduce((s,o)=>s+o.total,0)); if(profitChart) profitChart.destroy(); let ctx=document.getElementById("profitChart").getContext("2d"); profitChart=new Chart(ctx,{type:'line',data:{labels:last30,datasets:[{label:'Revenue ($)',data:revByDay,borderColor:'#f59e0b'}]}}); document.getElementById("profitDetails").innerHTML=`Period: ${period} | Orders: ${filtered.length} | Margin: ${revenue?((profit/revenue)*100).toFixed(1):0}%`; }
+  function searchAccounting() { let date=document.getElementById("profitSearchDate").value; if(date) updateAccounting("search",date); else showToast("Select date"); }
+  function renderAnalytics() { document.getElementById("hitStats").innerHTML=Object.entries(analytics.pageHits).map(([k,v])=>`<div>${k}: ${v}</div>`).join(""); let top=Object.entries(analytics.productViews).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([id,v])=>{ let p=products.find(pr=>pr.id==id); return `<div>${p?.name||id}: ${v}</div>`; }).join(""); document.getElementById("topProducts").innerHTML=top||"None"; let flashExp=Object.values(analytics.flashExposures).reduce((a,b)=>a+b,0); let flashSold=Object.values(analytics.flashSales).reduce((a,b)=>a+b,0); document.getElementById("flashPerformance").innerHTML=`<div>Exposed: ${flashExp}</div><div>Sold: ${flashSold}</div>`; let life=products.map(p=>{ let days=Math.floor((Date.now()-new Date(p.createdAt||Date.now()))/86400000); return `<div>${p.name}: ${days} days</div>`; }).join(""); document.getElementById("productLifetime").innerHTML=life; }
+
+  // MAIN NAVIGATION
+  function setView(view) {
+    currentView = view;
+    trackPageView(view);
+    document.querySelectorAll(".view-section").forEach(v => v.classList.add("hidden"));
+    document.getElementById(view + "View").classList.remove("hidden");
+    if (view === "products") { renderProducts(); renderSidebarCategories(); }
+    if (view === "home") renderHome();
+    if (view === "cart") renderCartView();
+    if (view === "checkout") renderCheckoutView();
+    if (view === "orders") renderOrders();
+    if (view === "blog") renderBlogFront();
+    document.querySelectorAll(".nav-btn").forEach(btn => btn.classList.remove("active-nav"));
+    let activeBtn = Array.from(document.querySelectorAll(".nav-btn")).find(btn => btn.getAttribute("onclick") === `setView('${view}')`);
+    if (activeBtn) activeBtn.classList.add("active-nav");
+  }
+
+  function refreshCurrentView() {
+    if (currentView === "cart") renderCartView();
+    else if (currentView === "checkout") renderCheckoutView();
+    else if (currentView === "products") renderProducts();
+    else if (currentView === "home") renderHome();
+    else if (currentView === "orders") renderOrders();
+    else if (currentView === "blog") renderBlogFront();
+  }
+
+  function subscribeNewsletter() {
+    let email = document.getElementById("newsletterEmail")?.value;
+    if (email) showToast("Subscribed!");
+    else showToast("Enter email");
+  }
+
+  loadData();
+  setView("home");
+</script>
+</body>
+</html>
